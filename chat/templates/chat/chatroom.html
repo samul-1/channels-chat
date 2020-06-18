@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{% load static %}
+
+		<link rel="stylesheet" type="text/css" href="{% static 'chat/style.css' %}">
+		<link rel="stylesheet" type="text/css" href="{% static colorset %}">
+	</head>
+	
+	<body>
+		<p>You are currently logged in as <b>{{ request.user.username }}</b> &mdash; <a href="/accounts/logout">Log out</a></p>
+		<form action="set_theme" method="post">
+			{% csrf_token %}
+			{{ colorform.as_table }}
+		</form><br />
+		<div id="chat_container">
+			{% for message in messages %}
+					 {% if message.sent_by.pk == request.user.pk %}
+					 	<span class="msg your_msg">
+					 {% else %}
+						<span class="msg others_msg">
+					 {% endif %}
+					 {% if message.is_server_message == False %}
+						 {% if message.is_system_message == True %}
+						 	<span class="sys_msg">
+							{% if message.msg_text == " joined the chatroom" %}
+								&nbsp;&rarr;
+							{% endif %}
+							{% if message.msg_text == " left the chatroom" %}
+								&nbsp;&larr;
+							{% endif %}
+				 		{% endif %}
+						{{ message.sent_by.username }}{% if message.is_system_message == False %}:{% endif %}
+					 {% endif %}
+					 {% if message.is_server_message == True %}
+						<b class="server">Server message: </b>
+					 {% endif %} 
+					 {{ message.msg_text }} 
+					 {% if message.is_system_message == True %}
+							 </span>
+					 {% endif %}
+					 <i class="timestamp">
+					 {% if message.timestamp.date < today %}
+						{{ message.timestamp|date:"m/d/Y" }}
+					 {% endif %}
+					 {{ message.timestamp|time:"H:i" }}
+					 </i>
+					 </span>
+			{% endfor %}
+		</div>
+		<div id="online_users">
+			<span class="heading">Online users:</span>
+			{% for user in online_users %}
+				<p id="{{ user }}">{{ user }}</p>
+			{% endfor %}
+		</div>
+		<br />
+		<div id="message_input">
+			<span>Your message:</span> <input autocomplete="off" type="text" name="msg_text" size="100" style="margin-left: 5px" id="message-input" required="">
+			<button id="submit-button">Send</button>
+		</div>
+		<br />
+		<script>
+			const this_user = "{{ request.user.username }}"
+		</script>
+		<script type="text/javascript" src="{% static 'chat/chat_frontend.js' %}"></script>
+		<script type="text/javascript" src="{% static 'chat/script.js' %}"></script>
+	</body>
+</html>

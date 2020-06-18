@@ -1,0 +1,15 @@
+.your_msg {
+	background-color: #4f0087
+}
+
+.others_msg, .heading {
+	background-color: #8000db
+}
+.timestamp {
+    color: #dbbfff;
+}
+
+body {
+    background-color: #240054;
+    color: white;
+}

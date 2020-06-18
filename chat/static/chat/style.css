@@ -1,0 +1,64 @@
+body {
+	/*color: green*/
+}
+
+.timestamp {
+	font-size: small;
+	float: right;
+	margin-right: 10px
+}
+
+.msg {
+	padding: 5px 5px 5px 10px;
+	display: block;
+	border-bottom: 1px solid #FAFAFA
+}
+
+
+#chat_container {
+	border: 1px solid #989898;
+	border-radius: 3px;
+	-webkit-box-shadow: 1px 1px 2px 0px rgba(50, 50, 50, 0.75);
+	-moz-box-shadow:    1px 1px 2px 0px rgba(50, 50, 50, 0.75);
+	box-shadow:         1px 1px 2px 0px rgba(50, 50, 50, 0.75);
+	height: 450px;
+	overflow-y: auto;
+	float: left;
+	width: 80%;
+}
+
+#online_users {
+	float: right;
+	margin-right: 10px;
+	border: 1px solid #989898;
+	width: 15%;
+	border-radius: 1px;
+	-webkit-box-shadow: 0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	-moz-box-shadow:    0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	box-shadow:         0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	text-align: center;
+}
+
+#submit-button {
+	background-color: black;
+	color: white;
+	text-align: center;
+	border-radius: 5px;
+	width: 100px;
+}
+
+#submit-button:hover {
+	cursor: pointer
+}
+
+#message_input {
+	float: left;
+	clear: both;
+	margin-top: 20px;
+}
+
+.heading {
+	display:block;
+	padding: 5px;
+	font-weight: bold;
+}
