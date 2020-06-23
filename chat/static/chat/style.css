@@ -27,6 +27,12 @@ body {
 	width: 80%;
 }
 
+#colorset_form {
+	margin: 30px 10px 0 10px;
+	float: right;
+	display: block;
+}
+
 #online_users {
 	float: right;
 	margin-right: 10px;
@@ -61,4 +67,9 @@ body {
 	display:block;
 	padding: 5px;
 	font-weight: bold;
+}
+
+.err {
+	background-color: #FF9494;
+	color: black;
 }

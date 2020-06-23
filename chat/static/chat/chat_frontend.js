@@ -1,7 +1,26 @@
 const chatSocket = new WebSocket("ws://" + window.location.host + "/ws/chat/")
+let expected_closure = 0
+chatSocket.onopen = function () {
+    console.log("Connected to chat socket");
+    chatSocket.send(JSON.stringify({
+        "command": "join",
+        "room": '1'
+    }))
+}
 
+chatSocket.onclose = function(e) {
+    if(!expected_closure) {
+        document.querySelector("#chat_container").innerHTML +=
+            "<span class='msg err'>Server stopped responding</span>"
+        document.querySelector("#chat_container").scrollTop = document.querySelector(
+            "#chat_container"
+        ).scrollHeight
+    }
+}
+
+// renders new message and appends it to the chat container div
 show_new_message = function (data) {
-    if (data.sent_by == this_user) 
+    if (data.username == this_user) 
         msg_class = "your_msg"
     else 
         msg_class = "others_msg"
@@ -9,12 +28,34 @@ show_new_message = function (data) {
         "<span class='msg " +
         msg_class +
         "'>" +
-        data.sent_by +
+        data.username +
         ": " +
         data.message +
         "<i class='timestamp'>" +
         data.timestamp +
         "</i></span>"
+    
+    document.querySelector("#chat_container").scrollTop = document.querySelector(
+        "#chat_container"
+    ).scrollHeight
+}
+
+show_kick_message = function (data) {
+    document.getElementById(data["kicked_user"]).outerHTML = ""
+    if(data["kicked_user"] == this_user) {
+        msg = "You were kicked from the chat"
+        expected_closure = 1
+    } else {
+        msg =
+            data["who_kicked"] +
+            " kicked " +
+            data["kicked_user"]
+    }
+     
+    document.querySelector("#chat_container").innerHTML +=
+        "<span class='msg err'>" +
+        msg +
+        "</span>"
     
     document.querySelector("#chat_container").scrollTop = document.querySelector(
         "#chat_container"
@@ -69,20 +110,29 @@ show_user_joined_or_left = function(data, action) {
             data.username +
             "'>" +
             data.username +
-            "</p>"
+            " <button onclick=\"kickUser('" +
+            data.username +
+            "')\">Kick</button></p>"
 }		
 
 chatSocket.onmessage = function (e) {
     const data = JSON.parse(e.data)
-    switch(data.message_type) {
-        case "chat_message":
+    console.log(e)
+    switch(data.msg_type) {
+        case 0:
             show_new_message(data)
             break
-        case "user_joined":
+        case 2:
+            show_kick_message(data)
+            break
+        case 4:
             show_user_joined_or_left(data, "joined")
             break
-        case "user_left":
+        case 5:
             show_user_joined_or_left(data, "left")
+            break
+        default:
+            console.log("Unsupported message")
             break
     }
 }
@@ -102,10 +152,23 @@ document.querySelector("#submit-button").onclick = function (e) {
         const message = messageInputDom.value
         chatSocket.send(
         JSON.stringify({
-            type: 'user',
-            message: message,
+            'command': 'send',
+            'room': '1',
+            'message': message,
         })
         )
         messageInputDom.value = ""
     }
+}
+
+//document.querySelector("#kick").onclick = function (e) {
+kickUser = function(toKick) {
+        chatSocket.send(
+        JSON.stringify({
+            'command': 'kick',
+            'room': '1',
+            'who_kicked': this_user,
+            'kicked_user': toKick,
+        })
+        )
 }

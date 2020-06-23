@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Message, Profile, Colorset
+from .models import Message, Profile, Colorset, Room
 
 # Register your models here.
 
@@ -12,6 +12,10 @@ class ProfileAdmin(admin.ModelAdmin):
 class ColorsetAdmin(admin.ModelAdmin):
 	list_display = ('name', 'filename')
 
+class RoomAdmin(admin.ModelAdmin):
+	list_display = ('title',)
+
 admin.site.register(Message, MessageAdmin)
 admin.site.register(Profile, ProfileAdmin)
 admin.site.register(Colorset, ColorsetAdmin)
+admin.site.register(Room, RoomAdmin)

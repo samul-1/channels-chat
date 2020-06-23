@@ -23,10 +23,10 @@ def chatroom(request):
   except Profile.DoesNotExist:
     # if user doesn't have a preference set, choose the default colorset and add a db preference for this user
     # THIS SHOULD NEVER HAPPEN BECAUSE PREFERENCES GET CREATED AT SIGN UP TIME
-    colorset = Colorset.objects.get(pk=defaultColorSetId).filename
+    colorset = Colorset.objects.get(pk=1).filename
     profile = Profile()
     profile.of_user = request.user
-    profile.selected_colorset = Colorset.objects.get(pk=1)
+    profile.selected_colorset = Colorset.objects.get(pk=1).filename
     profile.save()
 
   # instantiate colorset selection form

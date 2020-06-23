@@ -1,139 +1,315 @@
-import json
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
+# import json
+# from asgiref.sync import async_to_sync
+# from channels.generic.websocket import WebsocketConsumer
 from django.utils import timezone, dateformat
 from datetime import timedelta
-from .models import Message, Profile
+from .models import Message, Profile, Room
 import time
+from django.contrib.auth.models import User, Group
 
-class ChatConsumer(WebsocketConsumer):
-    def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']
-        self.room_group_name = 'chat'
+from django.conf import settings
 
-        # set user as online
-        this_user = Profile.objects.get(of_user=self.scope["user"].pk)
-        this_user.is_online = True
-        this_user.save()
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-        # Join room group
-        async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name,
-            self.channel_name
+from .exceptions import ClientError
+from .utils import get_room_or_error
+
+from channels.db import database_sync_to_async
+import asyncio
+
+class ChatConsumer(AsyncJsonWebsocketConsumer):
+    """
+    This chat consumer handles websocket connections for chat clients.
+
+    It uses AsyncJsonWebsocketConsumer, which means all the handling functions
+    must be async functions, and any sync work (like ORM access) has to be
+    behind database_sync_to_async or sync_to_async. For more, read
+    http://channels.readthedocs.io/en/latest/topics/consumers.html
+    """
+
+    ##### WebSocket event handlers
+
+    async def connect(self):
+        """
+        Called when the websocket is handshaking as part of initial connection.
+        """
+        # Are they logged in?
+        if self.scope["user"].is_anonymous:
+            # Reject the connection
+            await self.close()
+        else:
+            # Accept the connection
+            await self.accept()
+        # Store which rooms the user has joined on this connection
+        self.rooms = set()
+        await self.set_as_online(self.scope["user"])
+
+    async def receive_json(self, content):
+        """
+        Called when we get a text frame. Channels will JSON-decode the payload
+        for us and pass it as the first argument.
+        """
+        # Messages will have a "command" key we can switch on
+        command = content.get("command", None)
+        try:
+            if command == "join":
+                # Make them join the room
+                await self.join_room(content["room"])
+            elif command == "leave":
+                # Leave the room
+                await self.leave_room(content["room"])
+            elif command == "send":
+                await self.send_room(content["room"], content["message"])
+            elif command == "kick":
+                await self.kick_user(content["room"], content["who_kicked"], content["kicked_user"])
+        except ClientError as e:
+            # Catch any errors and send it back
+            await self.send_json({"error": e.code})
+
+    async def disconnect(self, code):
+        """
+        Called when the WebSocket closes for any reason.
+        """
+
+        # set user as not online in db
+        await self.user_just_left(self.scope["user"])
+        
+        # wait 5 seconds and check if user has come back
+        await asyncio.sleep(5)
+
+        # Send user left message only if the user hasn't come back
+        # Leave all the rooms we are still in
+        for room_id in list(self.rooms):
+            try:
+                await self.leave_room(room_id)
+            except ClientError:
+                pass
+        
+        # user is not in "just left" status anymore
+        await self.clear_user_status(self.scope["user"])
+
+    ##### Command helper methods called by receive_json
+
+    async def join_room(self, room_id):
+        """
+        Called by receive_json when someone sent a join command.
+        """
+        # if the user is just coming back after having left a few seconds ago, do nothing        
+        room = await get_room_or_error(room_id, self.scope["user"])
+        if(not await self.had_left(self.scope["user"])):
+            # Send a join message if it's turned on
+            if settings.NOTIFY_USERS_ON_ENTER_OR_LEAVE_ROOMS:
+                await self.channel_layer.group_send(
+                    room.group_name,
+                    {
+                        "type": "chat.join",
+                        "room_id": room_id,
+                        "username": self.scope["user"].username,
+                        "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
+                    }
+                )
+            await self.save_message(" joined the chatroom", self.scope["user"], True)
+        # Store that we're in the room
+        self.rooms.add(room_id)
+        # Add them to the group so they get room messages
+        await self.channel_layer.group_add(
+            room.group_name,
+            self.channel_name,
         )
-        # only show the entrance message if the user wasn't online already
-        if(this_user.just_left == False):
-            msg = Message()
-            msg.msg_text = " joined the chatroom"
-            msg.sent_by = self.scope["user"]
-            msg.is_system_message = True
-            msg.save()
+        # Instruct their client to finish opening the room
+        await self.send_json({
+            "operation": "join",
+            "join": str(room.id),
+            "title": room.title,
+        })
 
-            # Send user entered message
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name,
+    async def leave_room(self, room_id):
+        """
+        Called by receive_json when someone sent a leave command.
+        """
+        # The logged-in user is in our scope thanks to the authentication ASGI middleware
+        room = await get_room_or_error(room_id, self.scope["user"])
+        # Send a leave message if it's turned on
+        if(not await self.has_come_back(self.scope["user"]) and not await self.was_kicked(self.scope["user"])):
+            if settings.NOTIFY_USERS_ON_ENTER_OR_LEAVE_ROOMS:
+                await self.channel_layer.group_send(
+                    room.group_name,
+                    {
+                        "type": "chat.leave",
+                        "room_id": room_id,
+                        "username": self.scope["user"].username,
+                        "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
+                    }
+                )
+            await self.save_message(" left the chatroom", self.scope["user"], True)
+
+        # Remove that we're in the room
+        self.rooms.discard(room_id)
+        # Remove them from the group so they no longer get room messages
+        await self.channel_layer.group_discard(
+            room.group_name,
+            self.channel_name,
+        )
+        # Instruct their client to finish closing the room
+        await self.send_json({
+            "operation": "leave",
+            "leave": str(room.id),
+        })
+
+    async def send_room(self, room_id, message):
+        """
+        Called by receive_json when someone sends a message to a room.
+        """
+        # Check they are in this room
+        if room_id not in self.rooms:
+            raise ClientError("ROOM_ACCESS_DENIED")
+        # Get the room and send to the group about it
+        room = await get_room_or_error(room_id, self.scope["user"])
+        await self.save_message(message, self.scope["user"])
+        await self.channel_layer.group_send(
+            room.group_name,
+            {
+                "type": "chat.message",
+                "room_id": room_id,
+                "username": self.scope["user"].username,
+                "message": message,
+                "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
+            }
+        )
+    
+    async def kick_user(self, room_id, who_kicked, kicked_user):
+        """
+        Called by receive_json when an operator kicks a user
+        """
+         # Check they are in this room
+        if room_id not in self.rooms:
+            raise ClientError("ROOM_ACCESS_DENIED")
+        # Get the room and send to the group about it
+        room = await get_room_or_error(room_id, self.scope["user"])
+        if(await self.is_operator(self.scope["user"])):
+            await self.channel_layer.group_send(
+                room.group_name,
                 {
-                    'type': 'user_entered',
-                    'username': self.scope["user"].username,
+                    "type": "chat.kick",
+                    "room_id": room_id,
+                    "kicked_user": kicked_user,
+                    "who_kicked": who_kicked,
+                    "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
                 }
             )
 
-        self.accept()
+    ##### Handlers for messages sent over the channel layer
 
-    def disconnect(self, close_code):
-        # Leave room group
-        async_to_sync(self.channel_layer.group_discard)(
-            self.room_group_name,
-            self.channel_name
+    # These helper methods are named by the types we send - so chat.join becomes chat_join
+    async def chat_join(self, event):
+        """
+        Called when someone has joined our chat.
+        """
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": settings.MSG_TYPE_ENTER,
+                "room": event["room_id"],
+                "username": event["username"],
+                "timestamp": event["timestamp"],
+            },
         )
 
-        # set user as not online in db
-        this_user = Profile.objects.get(of_user=self.scope["user"].pk)
+    async def chat_leave(self, event):
+        """
+        Called when someone has left our chat.
+        """
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": settings.MSG_TYPE_LEAVE,
+                "room": event["room_id"],
+                "username": event["username"],
+                "timestamp": event["timestamp"],
+            },
+        )
+
+    async def chat_message(self, event):
+        """
+        Called when someone has messaged our chat.
+        """
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": settings.MSG_TYPE_MESSAGE,
+                "room": event["room_id"],
+                "username": event["username"],
+                "message": event["message"],
+                "timestamp": event["timestamp"],
+            },
+        )
+    async def chat_kick(self, event):
+        """
+        Called when someone has kicked a user
+        """
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": settings.MSG_TYPE_ALERT,
+                "kicked_user": event["kicked_user"],
+                "who_kicked": event["who_kicked"],
+                "timestamp": event["timestamp"],
+            },
+        )
+        if(self.scope["user"].username == event['kicked_user']):
+            await self.set_kicked(self.scope["user"])
+            await self.close()
+
+    @database_sync_to_async
+    def save_message(self, message, username, is_system=False):
+        msg = Message()
+        msg.msg_text = message
+        msg.sent_by = username
+        msg.is_system_message = is_system
+        msg.save()
+    
+    @database_sync_to_async
+    def user_just_left(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
         this_user.is_online = False
         this_user.just_left = True
         this_user.save()
 
-        time.sleep(5)
-        this_user = Profile.objects.get(of_user=self.scope["user"].pk)
-
-        # Send user left message only if the user hasn't come back
-        if(this_user.is_online == False):
-            msg = Message()
-            msg.msg_text = " left the chatroom"
-            msg.sent_by = self.scope["user"]
-            msg.is_system_message = True
-            msg.save()
-
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name,
-                {
-                    'type': 'user_left',
-                    'username': self.scope["user"].username,
-                }
-            )
-        # user has now left the room completely
+    @database_sync_to_async
+    def has_come_back(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        return this_user.is_online
+    
+    @database_sync_to_async
+    def had_left(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        return this_user.just_left
+    
+    @database_sync_to_async
+    def set_kicked(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        this_user.was_kicked = True
+        this_user.save()
+    
+    @database_sync_to_async
+    def was_kicked(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        return this_user.was_kicked
+    
+    @database_sync_to_async
+    def clear_user_status(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
         this_user.just_left = False
+        this_user.was_kicked = False
+        this_user.save()
+    
+    @database_sync_to_async
+    def set_as_online(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        this_user.is_online = True
         this_user.save()
 
-    # Receive message from WebSocket
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
-        msg_type = text_data_json['type']
-
-        this_user = Profile.objects.get(of_user=self.scope["user"].pk)
-        
-        # check if user is still connected
-        if(this_user.is_online == True):
-        # Send message to room group
-            if(msg_type == 'user'):
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {
-                        'type': 'chat_message',
-                        'message': message,
-                        'sent_by': self.scope["user"].username,
-                        'timestamp': dateformat.format(timezone.now() + timedelta(hours=2), 'H:i')
-                    }
-                )
-                # save message to db
-                msg = Message()
-                msg.msg_text = message
-                msg.sent_by = self.scope["user"]
-                msg.save()
-
-    # message type handlers:
-
-    # Receive message from room group
-    def chat_message(self, event):
-        message = event['message']
-        sent_by = event['sent_by']
-        timestamp = event['timestamp']
-
-        # Send message to WebSocket
-        self.send(text_data=json.dumps({
-            'message_type': 'chat_message',
-            'message': message,
-            'sent_by': sent_by,
-            'timestamp': timestamp
-        }))
-
-    def user_entered(self, event):
-        username = event['username']
-
-        # Send message to WebSocket
-        self.send(text_data=json.dumps({
-            'message_type': 'user_joined',
-            'username': username,
-            'timestamp': dateformat.format(timezone.now() + timedelta(hours=2), 'H:i')
-        }))
-    
-    def user_left(self, event):
-        username = event['username']
-
-        # Send message to WebSocket
-        self.send(text_data=json.dumps({
-            'message_type': 'user_left',
-            'username': username,
-            'timestamp': dateformat.format(timezone.now() + timedelta(hours=2), 'H:i')
-        }))
+    @database_sync_to_async
+    def is_operator(self, user):
+        this_user = User.objects.get(pk=user.pk)
+        return this_user.groups.filter(name='Operator').exists()

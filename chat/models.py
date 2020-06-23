@@ -6,6 +6,29 @@ from django.utils import timezone
 
 from django.contrib.auth.models import User
 
+class Room(models.Model):
+    """
+    A room for people to chat in.
+    """
+
+    # Room title
+    title = models.CharField(max_length=255)
+
+    # If only "staff" users are allowed (is_staff on django's User)
+    staff_only = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def group_name(self):
+        """
+        Returns the Channels Group name that sockets should subscribe to to get sent
+        messages as they are generated.
+        """
+        return "room-%s" % self.id
+
+
 class Message(models.Model):
 	sent_by = models.ForeignKey(User, on_delete=models.CASCADE)
 	msg_text = models.TextField()
@@ -26,5 +49,6 @@ class Profile(models.Model):
 	selected_colorset = models.ForeignKey(Colorset, on_delete=models.CASCADE, default=1)
 	is_online = models.BooleanField(default=False)
 	just_left = models.BooleanField(default=False)
+	was_kicked = models.BooleanField(default=False)
 	def __str__(self):
 		return self.of_user.username

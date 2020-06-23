@@ -2,6 +2,8 @@
 <html>
 	<head>
 		{% load static %}
+		<script src="{% static "chat/jquery-1.12.2.min.js" %}" type="text/javascript"></script>
+		<script src="{% static "chat/reconnecting-websocket.min.js" %}" type="text/javascript"></script>
 
 		<link rel="stylesheet" type="text/css" href="{% static 'chat/style.css' %}">
 		<link rel="stylesheet" type="text/css" href="{% static colorset %}">
@@ -9,10 +11,6 @@
 	
 	<body>
 		<p>You are currently logged in as <b>{{ request.user.username }}</b> &mdash; <a href="/accounts/logout">Log out</a></p>
-		<form action="set_theme" method="post">
-			{% csrf_token %}
-			{{ colorform.as_table }}
-		</form><br />
 		<div id="chat_container">
 			{% for message in messages %}
 					 {% if message.sent_by.pk == request.user.pk %}
@@ -51,8 +49,14 @@
 		<div id="online_users">
 			<span class="heading">Online users:</span>
 			{% for user in online_users %}
-				<p id="{{ user }}">{{ user }}</p>
+				<p id="{{ user }}">{{ user }} <button onclick="kickUser('{{ user }}')">Kick</button></p>
 			{% endfor %}
+		</div>
+		<div id="colorset_form">
+			<form action="set_theme" method="post">
+				{% csrf_token %}
+				{{ colorform.as_table }}
+			</form><br />
 		</div>
 		<br />
 		<div id="message_input">
