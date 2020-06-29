@@ -6,7 +6,8 @@ from datetime import timedelta
 from .models import Message, Profile, Room
 import time
 from django.contrib.auth.models import User, Group
-
+from asgiref.sync import sync_to_async
+import logging
 from django.conf import settings
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -16,6 +17,8 @@ from .utils import get_room_or_error
 
 from channels.db import database_sync_to_async
 import asyncio
+
+from django.db.models import Q
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     """
@@ -42,6 +45,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.accept()
         # Store which rooms the user has joined on this connection
         self.rooms = set()
+
+        # join all the rooms user is a participant of
+        for room in await sync_to_async(list)(Room.objects.filter(Q(user_1=self.scope["user"]) | Q(user_2=self.scope["user"]))):
+            try:
+                await self.join_room(str(room.pk))
+            except ClientError:
+                pass
         await self.set_as_online(self.scope["user"])
 
     async def receive_json(self, content):
@@ -51,6 +61,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         # Messages will have a "command" key we can switch on
         command = content.get("command", None)
+
         try:
             if command == "join":
                 # Make them join the room
@@ -62,6 +73,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_room(content["room"], content["message"])
             elif command == "kick":
                 await self.kick_user(content["room"], content["who_kicked"], content["kicked_user"])
+            elif command == "new_private_msg":
+                await self.create_private_conversation(content["message"], content["recipient"])
         except ClientError as e:
             # Catch any errors and send it back
             await self.send_json({"error": e.code})
@@ -96,7 +109,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         # if the user is just coming back after having left a few seconds ago, do nothing        
         room = await get_room_or_error(room_id, self.scope["user"])
-        if(not await self.had_left(self.scope["user"])):
+        if(not await self.had_left(self.scope["user"]) and room_id == '1'):
             # Send a join message if it's turned on
             if settings.NOTIFY_USERS_ON_ENTER_OR_LEAVE_ROOMS:
                 await self.channel_layer.group_send(
@@ -122,6 +135,29 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             "join": str(room.id),
             "title": room.title,
         })
+    
+    async def create_private_conversation(self, message, recipient):
+        recipient_user = await self.get_user_by_username(recipient)
+        
+        # if a private conversation between the two users doesn't exist, create such a room
+        room = await self.get_private_room_or_none(self.scope["user"], recipient_user)
+        if(room == None):
+            room = await self.new_private_room(self.scope["user"], recipient_user)
+            main_room = await get_room_or_error('1', self.scope["user"])
+            await self.channel_layer.group_send(
+                    main_room.group_name,
+                    {
+                        "type": "chat.newconv",
+                        "room_id": room.pk,
+                        "username": self.scope["user"].username,
+                        "recipient": recipient
+                    }
+            )
+        logging.warning(self.rooms)
+        # add sender to private room channel
+        if str(room.pk) not in self.rooms:
+            await self.join_room(str(room.pk))
+        await self.send_room(str(room.pk), message)
 
     async def leave_room(self, room_id):
         """
@@ -160,12 +196,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called by receive_json when someone sends a message to a room.
         """
+
+        logging.warning(room_id)
+        logging.warning(self.rooms)
         # Check they are in this room
         if room_id not in self.rooms:
             raise ClientError("ROOM_ACCESS_DENIED")
         # Get the room and send to the group about it
         room = await get_room_or_error(room_id, self.scope["user"])
-        await self.save_message(message, self.scope["user"])
+        await self.save_message(message, self.scope["user"], False, room_id)
         await self.channel_layer.group_send(
             room.group_name,
             {
@@ -259,13 +298,32 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if(self.scope["user"].username == event['kicked_user']):
             await self.set_kicked(self.scope["user"])
             await self.close()
+    
+    async def chat_newconv(self, event):
+        """
+        Called when someone initiates a new private conversation with another user
+        """
+        # add recipient to private conversation channel
+        if(self.scope["user"].username == event["recipient"]):
+            await self.join_room(str(event["room_id"]))
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": settings.MSG_TYPE_MUTED,
+                "room": event["room_id"],
+                "username": event["username"],
+                "recipient": event["recipient"]
+            },
+        )
 
     @database_sync_to_async
-    def save_message(self, message, username, is_system=False):
+    def save_message(self, message, username, is_system=False, in_room=None):
         msg = Message()
         msg.msg_text = message
         msg.sent_by = username
         msg.is_system_message = is_system
+        if(in_room != None):
+            msg.in_room = Room.objects.get(pk=in_room)
         msg.save()
     
     @database_sync_to_async
@@ -313,3 +371,25 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def is_operator(self, user):
         this_user = User.objects.get(pk=user.pk)
         return this_user.groups.filter(name='Operator').exists()
+
+    @database_sync_to_async
+    def new_private_room(self, user1, user2):
+        room = Room()
+        room.title = user1.username + "-" + user2.username
+        room.user_1 = user1
+        room.user_2 = user2
+        room.save()
+        return room
+    
+    @database_sync_to_async
+    def get_user_by_username(self, name):
+        return User.objects.get(username=name)
+
+    @database_sync_to_async
+    def get_private_room_or_none(self, user1, user2):
+        try:
+            room = Room.objects.get(Q(user_1=user1) & Q(user_2=user2) | Q(user_1=user2) & Q(user_2=user1))
+        except Room.DoesNotExist:
+            return None
+
+        return room

@@ -33,9 +33,22 @@ body {
 	display: block;
 }
 
-#online_users {
+/* #online_users {
 	float: right;
 	margin-right: 10px;
+	border: 1px solid #989898;
+	width: 15%;
+	border-radius: 1px;
+	-webkit-box-shadow: 0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	-moz-box-shadow:    0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	box-shadow:         0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	text-align: center;
+} */
+
+.sidebar {
+	float: right;
+	margin-right: 10px;
+	margin-top: 10px;
 	border: 1px solid #989898;
 	width: 15%;
 	border-radius: 1px;
@@ -63,6 +76,10 @@ body {
 	margin-top: 20px;
 }
 
+.message_dialog {
+	/* display: none */
+}
+
 .heading {
 	display:block;
 	padding: 5px;
@@ -73,3 +90,122 @@ body {
 	background-color: #FF9494;
 	color: black;
 }
+
+.chatroom {
+	display: none;
+}
+
+/*.tabs-nav-wrap { padding:10px 0; text-align: center;}*/
+.tabs-nav-wrap ul {display: inline-block; list-style: none;}
+
+.tabs-nav-wrap ul li {
+  list-style: none;
+  display: block;
+
+  margin:0 3px;
+}
+
+.tabs-nav li {
+  list-style: none;
+  display: block;
+  padding:10px;
+  /* background: #736565; */
+  /* font-size: 16px;
+  font-weight: 300; */
+  cursor: pointer;
+  /* color: #fff; */
+  /* text-align: left; */
+  text-decoration: none;
+  /* border:1px solid #615656; */
+}
+
+.tabs-nav .tab-nav-link.current {
+	font-weight: bold;
+}
+
+.tabs-nav .tab-nav-link:hover {
+  /* border:1px solid #5eaace;
+  background: #74c1e4; */
+  text-decoration: underline;
+}
+
+.tab-content {padding:20px 0; text-align: center; display:none;}
+
+ul {
+	padding-inline-start: 0;
+}
+
+/* --- */
+
+.popup {
+	position: relative;
+	display: inline-block;
+	cursor: pointer;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+  }
+  
+  /* The actual popup */
+ .popuptext {
+	visibility: hidden;
+	width: 200px;
+	background-color: whitesmoke;
+	color: black;
+	text-align: center;
+	border: 1px solid black;
+	border-radius: 1px;
+	padding: 8px 0;
+	position: absolute;
+	z-index: 2;
+	clear: both;
+	/* bottom: 90%; */
+	/* left: 70%; */
+	margin-left: -150px;
+	margin-top: -10px;
+	-webkit-box-shadow: 0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	-moz-box-shadow:    0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+	box-shadow:         0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
+  }
+  
+  /* Popup arrow */
+   .popuptext::after {
+	content: "";
+	position: absolute;
+	top: -10%;
+	left: 90%;
+	margin-left: -5px;
+	border-width: 5px;
+	border-style: solid;
+	border-color: transparent transparent #555 transparent;
+  }
+  
+  /* Toggle this class - hide and show the popup */
+  .show {
+	visibility: visible;
+	-webkit-animation: fadeIn 0.5s;
+	animation: fadeIn 0.5s;
+  }
+  
+  /* Add animation (fade in the popup) */
+  @-webkit-keyframes fadeIn {
+	from {opacity: 0;} 
+	to {opacity: 1;}
+  }
+  
+  @keyframes fadeIn {
+	from {opacity: 0;}
+	to {opacity:1 ;}
+  }
+
+  .unread_msgs::after {
+	content: "";
+	position: absolute;
+	margin-top: 0;
+	margin-left: 0;
+	border-width: 3px;
+	border-radius: 100%;
+	border-style: solid;
+	border-color: #EE4031;
+  }

@@ -2,6 +2,7 @@
 <html>
 	<head>
 		{% load static %}
+		{% load auth_extras %}
 		<script src="{% static "chat/jquery-1.12.2.min.js" %}" type="text/javascript"></script>
 		<script src="{% static "chat/reconnecting-websocket.min.js" %}" type="text/javascript"></script>
 
@@ -12,46 +13,111 @@
 	<body>
 		<p>You are currently logged in as <b>{{ request.user.username }}</b> &mdash; <a href="/accounts/logout">Log out</a></p>
 		<div id="chat_container">
-			{% for message in messages %}
-					 {% if message.sent_by.pk == request.user.pk %}
-					 	<span class="msg your_msg">
-					 {% else %}
-						<span class="msg others_msg">
-					 {% endif %}
-					 {% if message.is_server_message == False %}
-						 {% if message.is_system_message == True %}
-						 	<span class="sys_msg">
-							{% if message.msg_text == " joined the chatroom" %}
-								&nbsp;&rarr;
+			<div id="1" class="chatroom">
+				{% for message in messages %}
+					{% if message.in_room.pk == 1 %}
+							{% if message.sent_by.pk == request.user.pk %}
+								<span class="msg your_msg">
+							{% else %}
+								<span class="msg others_msg">
 							{% endif %}
-							{% if message.msg_text == " left the chatroom" %}
-								&nbsp;&larr;
+							{% if message.is_server_message == False %}
+								{% if message.is_system_message == True %}
+									<span class="sys_msg">
+									{% if message.msg_text == " joined the chatroom" %}
+										&nbsp;&rarr;
+									{% endif %}
+									{% if message.msg_text == " left the chatroom" %}
+										&nbsp;&larr;
+									{% endif %}
+								{% endif %}
+								{{ message.sent_by.username }}{% if message.is_system_message == False %}:{% endif %}
 							{% endif %}
-				 		{% endif %}
-						{{ message.sent_by.username }}{% if message.is_system_message == False %}:{% endif %}
-					 {% endif %}
-					 {% if message.is_server_message == True %}
-						<b class="server">Server message: </b>
-					 {% endif %} 
-					 {{ message.msg_text }} 
-					 {% if message.is_system_message == True %}
-							 </span>
-					 {% endif %}
-					 <i class="timestamp">
-					 {% if message.timestamp.date < today %}
-						{{ message.timestamp|date:"m/d/Y" }}
-					 {% endif %}
-					 {{ message.timestamp|time:"H:i" }}
-					 </i>
-					 </span>
+							{% if message.is_server_message == True %}
+								<b class="server">Server message: </b>
+							{% endif %} 
+							{{ message.msg_text }} 
+							{% if message.is_system_message == True %}
+									</span>
+							{% endif %}
+							<i class="timestamp">
+							{% if message.timestamp.date < today %}
+								{{ message.timestamp|date:"m/d/Y" }}
+							{% endif %}
+							{{ message.timestamp|time:"H:i" }}
+							</i>
+							</span>
+						{% endif %}
+				{% endfor %}
+			</div>
+			{% for room in rooms %}
+				<div id="{{ room.pk }}" class="chatroom">
+					{% for message in messages %}
+					{% if message.in_room.pk == room.pk %}
+							{% if message.sent_by.pk == request.user.pk %}
+								<span class="msg your_msg">
+							{% else %}
+								<span class="msg others_msg">
+							{% endif %}
+							{% if message.is_server_message == False %}
+								{% if message.is_system_message == True %}
+									<span class="sys_msg">
+									{% if message.msg_text == " joined the chatroom" %}
+										&nbsp;&rarr;
+									{% endif %}
+									{% if message.msg_text == " left the chatroom" %}
+										&nbsp;&larr;
+									{% endif %}
+								{% endif %}
+								{{ message.sent_by.username }}{% if message.is_system_message == False %}:{% endif %}
+							{% endif %}
+							{% if message.is_server_message == True %}
+								<b class="server">Server message: </b>
+							{% endif %} 
+							{{ message.msg_text }} 
+							{% if message.is_system_message == True %}
+									</span>
+							{% endif %}
+							<i class="timestamp">
+							{% if message.timestamp.date < today %}
+								{{ message.timestamp|date:"m/d/Y" }}
+							{% endif %}
+							{{ message.timestamp|time:"H:i" }}
+							</i>
+							</span>
+						{% endif %}
+				{% endfor %}
+				</div>
 			{% endfor %}
 		</div>
-		<div id="online_users">
+		<div id="online_users" class="sidebar">
 			<span class="heading">Online users:</span>
 			{% for user in online_users %}
-				<p id="{{ user }}">{{ user }} <button onclick="kickUser('{{ user }}')">Kick</button></p>
+				<p id="{{ user }}">
+					{{ user }}
+					{% if request.user|has_group:"Operator" %} 
+						<button onclick="kickUser('{{ user }}')">Kick</button>
+					{% endif %}
+					<button class="priv_msg_but popup" onclick="fadeInDialog('{{ user }}')">Message</button>
+					<div class="popuptext" id="{{ user }}_dialog">
+						<p>Send message to {{ user }}:</p>
+						<textarea id="msg_input_{{ user}}"></textarea>
+						<button id="msg_{{ user }}" onclick="sendPrivateMessage(this.id, '{{ user }}')">Send</button>
+					</div>
+				</p>
 			{% endfor %}
 		</div>
+		<br />
+		<div class="tabs-nav-wrap sidebar">
+			<span class="heading">Conversations:</span>
+			<ul class="tabs-nav" id="convo_list">
+				<li class="tab-nav-link" id="nav_1" data-target="#1">Chat</li>
+				{% for room in rooms %}
+					<li id="nav_{{ room.pk }}" class="tab-nav-link" data-target="#{{ room.pk }}">{{ room.title }}</li>
+				{% endfor %}
+			 </ul>
+		   <div style="clear:both;"></div>
+		</div><!-- ends tabs-nav-wrap -->	 
 		<div id="colorset_form">
 			<form action="set_theme" method="post">
 				{% csrf_token %}
@@ -67,6 +133,7 @@
 		<script>
 			const this_user = "{{ request.user.username }}"
 		</script>
+		<script type="text/javascript" src="{% static 'chat/ui.js' %}"></script>
 		<script type="text/javascript" src="{% static 'chat/chat_frontend.js' %}"></script>
 		<script type="text/javascript" src="{% static 'chat/script.js' %}"></script>
 	</body>

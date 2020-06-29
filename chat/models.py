@@ -16,6 +16,9 @@ class Room(models.Model):
 
     # If only "staff" users are allowed (is_staff on django's User)
     staff_only = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=False)
+    user_1 = models.ForeignKey(User, on_delete=models.CASCADE, null=True, default=None, related_name="user_1")
+    user_2 = models.ForeignKey(User, on_delete=models.CASCADE, null=True, default=None, related_name="user_2")
 
     def __str__(self):
         return self.title
@@ -35,6 +38,7 @@ class Message(models.Model):
 	timestamp = models.DateTimeField(default=timezone.now) #auto_now_add=True
 	is_system_message = models.BooleanField(default=False)
 	is_server_message = models.BooleanField(default=False)
+	in_room = models.ForeignKey(Room, on_delete=models.CASCADE, default=1)
 	def __str__(self):
 		return self.msg_text
 

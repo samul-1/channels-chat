@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from .forms import MessageForm, ColorsetForm
-from .models import Message, Colorset, Profile
+from .models import Message, Colorset, Profile, Room
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 import datetime
 from django.contrib.auth import logout, authenticate, login
 from django.utils import timezone, dateformat
+from django.db.models import Q
+import logging
 
 # Create your views here.
 
@@ -31,9 +33,21 @@ def chatroom(request):
 
   # instantiate colorset selection form
   colorset_selection = ColorsetForm(initial={'selection': colorset.pk})
+
+  # get all the conversations where user is a participant
+  rooms = Room.objects.filter(Q(user_1=request.user) | Q(user_2=request.user))
+  
+  # only send the username of the other user in private conversation to webpage for rendering
+  rooms_with_adjusted_title = list(rooms)
+
+  for room in rooms_with_adjusted_title:
+    if room.user_1 == request.user:
+      room.title = room.user_2.username
+    else:
+      room.title = room.user_1.username
   
   # get all messages
-  messages = Message.objects.all() #.order_by('timestamp')[:10]
+  messages = Message.objects.filter(Q(in_room=1) | Q(in_room__in=rooms)) #.order_by('timestamp')[:10]
   
   # set user as online
   this_user = Profile.objects.get(of_user=request.user)
@@ -43,7 +57,7 @@ def chatroom(request):
   # get online users list
   online_users = Profile.objects.filter(is_online=True)
 
-  return render(request, "chat/chatroom.html", {'messages': messages, 'colorform': colorset_selection, 'today': today, 'colorset': colorset.filename, 'online_users': online_users})
+  return render(request, "chat/chatroom.html", {'messages': messages, 'colorform': colorset_selection, 'today': today, 'colorset': colorset.filename, 'online_users': online_users, 'rooms': rooms_with_adjusted_title})
 
 # create an account
 def register(request):

@@ -21,6 +21,9 @@ def get_room_or_error(room_id, user):
     except Room.DoesNotExist:
         raise ClientError("ROOM_INVALID")
     # Check permissions
-    if room.staff_only and not user.is_staff:
+    # if room.staff_only and not user.is_staff:
+    #     raise ClientError("ROOM_ACCESS_DENIED")
+    if not room.is_public and user != room.user_1 and user != room.user_2:
         raise ClientError("ROOM_ACCESS_DENIED")
+
     return room
