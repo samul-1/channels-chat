@@ -1,0 +1,222 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Chat 1.0 Tour</title>
+    {% load static %}
+    {% load bootstrap4 %}
+
+	{# Load CSS and JavaScript #}
+	{% bootstrap_css %}
+	{% bootstrap_javascript jquery='full' %}
+
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" type="text/css" href="{% static 'chat/carousel.css' %}">
+    <style>
+        .right-faded {
+            box-shadow: 25px 25px 50px 0 white inset, -25px -25px 50px 0 white inset; 
+        }
+        .image-container .after {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            color: #FFF;
+        }
+        .image-container .after {
+            display: block;
+            background: rgba(0, 0, 0, 0.795);
+        }
+    </style>
+</head>
+  <body>
+
+    <!--<header>
+      <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <a class="navbar-brand" href="#">Carousel</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Link</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link disabled" href="#">Disabled</a>
+            </li>
+          </ul>
+          <form class="form-inline mt-2 mt-md-0">
+            <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+          </form>
+        </div>
+      </nav>
+    </header>-->
+
+    <main role="main">
+
+      <div id="myCarousel" class="carousel slide" data-ride="carousel">
+        <!-- <ol class="carousel-indicators">
+          <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+          <li data-target="#myCarousel" data-slide-to="1"></li>
+          <li data-target="#myCarousel" data-slide-to="2"></li>
+        </ol> -->
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <div class="image-container text-center">
+                <img class="first-slide" src="{% static 'images/2.gif' %}" style="width: 98%">
+                <div class="after"></div>
+            </div>
+            <div class="container">
+              <div class="carousel-caption text-left">
+                <h1>A real-time chatting application built with Django</h1>
+                <p><b>Chat 1.0</b> is a websocket-based web app that enables users to communicate in real-time.</p>
+                <!-- <p><a class="btn btn-lg btn-primary" href="#" role="button">Sign up today</a></p> -->
+              </div>
+            </div>
+          </div>
+          <!-- <div class="carousel-item">
+            <img class="second-slide" src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Second slide">
+            <div class="container">
+              <div class="carousel-caption">
+                <h1>Another example headline.</h1>
+                <p>Cras justo odio, dapibus ac facilisis in, egestas eget quam. Donec id elit non mi porta gravida at eget metus. Nullam id dolor id nibh ultricies vehicula ut id elit.</p>
+                <p><a class="btn btn-lg btn-primary" href="#" role="button">Learn more</a></p>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-item">
+            <img class="third-slide" src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Third slide">
+            <div class="container">
+              <div class="carousel-caption text-right">
+                <h1>One more for good measure.</h1>
+                <p>Cras justo odio, dapibus ac facilisis in, egestas eget quam. Donec id elit non mi porta gravida at eget metus. Nullam id dolor id nibh ultricies vehicula ut id elit.</p>
+                <p><a class="btn btn-lg btn-primary" href="#" role="button">Browse gallery</a></p>
+              </div>
+            </div>
+          </div> -->
+        </div>
+        <!-- <a class="carousel-control-prev" href="#myCarousel" role="button" data-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#myCarousel" role="button" data-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a> -->
+      </div>
+
+
+      <!-- Marketing messaging and featurettes
+      ================================================== -->
+      <!-- Wrap the rest of the page in another container to center all the content. -->
+
+      <div class="container marketing">
+
+        <!-- Three columns of text below the carousel -->
+        <div class="row">
+          <div class="col-lg-4">
+            <img src="{% static 'images/messages.png' %}" >
+            <h3>Real-time public and private messaging</h3>
+            <p>Thanks to its real-time nature, <b>Chat 1.0</b> allows for fast and secure communication between users. You can post a message on the main, public channel, or privately message another user.</p>
+            <!-- <p><a class="btn btn-secondary" href="#" role="button">View details &raquo;</a></p> -->
+          </div><!-- /.col-lg-4 -->
+          <div class="col-lg-4">
+            <img src="{% static 'images/colorset-selection.png' %}" width="150" height="140"><!--class="rounded-circle"-->
+            <h3>Skin selection</h3>
+            <p>Fan of dark themes? <b>Chat 1.0</b> allows you to switch between a light and a dark colorset, to better suit your preferences and habits. Your selection can be changed at any time, and will be remembered by the system each time you log in.</p>
+            <!-- <p><a class="btn btn-secondary" href="#" role="button">View details &raquo;</a></p> -->
+          </div><!-- /.col-lg-4 -->
+          <div class="col-lg-4">
+            <img src="{% static 'images/kick-menu.png' %}" width="200" height="140">
+            <h3>Powerful moderation tools</h3>
+            <p>Staff members have access to several tools that enable them to ensure users follow the rules. Operators can kick users from the chat or ban them. What's more, the staff can access chat logs to read past messages and can enter the chat in invisible mode (aka ninja mode). Nobody will even know they're online!</p>
+            <!-- <p><a class="btn btn-secondary" href="#" role="button">View details &raquo;</a></p> -->
+          </div><!-- /.col-lg-4 -->
+        </div><!-- /.row -->
+
+
+        <!-- START THE FEATURETTES -->
+
+        <hr class="featurette-divider">
+
+        <div class="row featurette">
+          <div class="col-md-5">
+            <h2 class="featurette-heading">Clean user interface <!--<span class="text-muted">It'll blow your mind.</span>--></h2> 
+            <p class="lead">Designed with minimalism in mind, the user interface consists of the essential components needed for an ergonomic user experience. You won't have problems finding your way around!</p>
+          </div>
+          <div class="col-md-7">
+            <div class="text-center">
+                <img class="featurette-image img-fluid mx-auto right-faded" src="{% static 'images/ui-ss1.png' %}">
+            </div>
+          </div>
+        </div>
+
+        <hr class="featurette-divider">
+
+        <div class="row featurette">
+          <div class="col-md-7 order-md-2">
+            <h2 class="featurette-heading">Private messaging features</h2>
+            <p class="lead"><b>Chat 1.0</b> easily allow users to message each other privately by showing a mail icon next to the usernames. A box will be displayed upon clicking on the icon, which will allow you to send a message to the user. Nobody else will receive that message. If somebody sends a message in a channel you're not currently watching, a red dot notification will appear next to the name of that room.</p>
+          </div>
+          <div class="col-md-5 order-md-1">
+            <div class="text-center">
+                <img class="featurette-image img-fluid mx-auto" src="{% static 'images/priv-msg.png' %}"><br />
+                <img class="featurette-image img-fluid mx-auto" src="{% static 'images/notification.png' %}">
+            </div>
+          </div>
+        </div>
+
+        <hr class="featurette-divider">
+
+        <div class="row featurette">
+          <div class="col-md-7">
+            <h2 class="featurette-heading">Anybody said ninja?</h2>
+            <p class="lead">By just cliking a button, staff members will be able to enter the chat without being seen by other users. They'll be able to read messages that are sent on the public channel and monitor user activity. A <em>become visible</em> button will be displayed on their screen, allowing them to switch to visible mode at any time.</p>
+          </div>
+          <div class="col-md-5">
+            <div class="text-center">
+                <img class="featurette-image img-fluid mx-auto" src="{% static 'images/enter-invisible.png' %}">
+                <span><i class="fas fa-chevron-down"></i></span><br />
+                <img class="featurette-image img-fluid mx-auto" src="{% static 'images/invisible-user.png' %}">
+            </div>
+          </div>
+        </div>
+
+        <hr class="featurette-divider">
+
+        <!-- /END THE FEATURETTES -->
+
+      </div><!-- /.container -->
+
+
+      <!-- FOOTER -->
+      <footer class="container">
+        <p class="float-right"><a href="#">Back to top</a></p>
+        <!--<p>&copy; 2017-2018 Company, Inc. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a></p>
+      </footer>-->
+    </main>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <!-- <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery-slim.min.js"><\/script>')</script>
+    <script src="../../assets/js/vendor/popper.min.js"></script>
+    <script src="../../dist/js/bootstrap.min.js"></script>
+    Just to make our placeholder images work. Don't actually copy the next line!
+    <script src="../../assets/js/vendor/holder.min.js"></script> -->
+    <script src="https://kit.fontawesome.com/c4a4310769.js" crossorigin="anonymous"></script>
+  </body>
+</html>

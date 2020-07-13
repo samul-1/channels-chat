@@ -3,7 +3,7 @@
 # from channels.generic.websocket import WebsocketConsumer
 from django.utils import timezone, dateformat
 from datetime import timedelta
-from .models import Message, Profile, Room
+from .models import Message, Profile, Room, Attachment
 import time
 from django.contrib.auth.models import User, Group
 from asgiref.sync import sync_to_async
@@ -65,14 +65,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         try:
             if command == "join":
                 # Make them join the room
-                await self.join_room(content["room"])
+                await self.join_room(content["room"], content["invisible"])
             elif command == "leave":
                 # Leave the room
                 await self.leave_room(content["room"])
             elif command == "send":
                 await self.send_room(content["room"], content["message"])
+            elif command == "attachment":
+                await self.send_attachment(content["room"])
             elif command == "kick":
-                await self.kick_user(content["room"], content["who_kicked"], content["kicked_user"])
+                await self.kick_user(content["room"], content["who_kicked"], content["kicked_user"], content["ban"])
             elif command == "new_private_msg":
                 await self.create_private_conversation(content["message"], content["recipient"])
         except ClientError as e:
@@ -85,10 +87,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
 
         # set user as not online in db
-        await self.user_just_left(self.scope["user"])
+        await self.set_just_left(self.scope["user"])
         
-        # wait 5 seconds and check if user has come back
-        await asyncio.sleep(5)
+        # wait 3 seconds and check if user has come back
+        await asyncio.sleep(3)
 
         # Send user left message only if the user hasn't come back
         # Leave all the rooms we are still in
@@ -103,15 +105,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     ##### Command helper methods called by receive_json
 
-    async def join_room(self, room_id):
+    async def join_room(self, room_id, invisible='0'):
         """
         Called by receive_json when someone sent a join command.
         """
         # if the user is just coming back after having left a few seconds ago, do nothing        
         room = await get_room_or_error(room_id, self.scope["user"])
+        logging.warning(invisible)
         if(not await self.had_left(self.scope["user"]) and room_id == '1'):
-            # Send a join message if it's turned on
-            if settings.NOTIFY_USERS_ON_ENTER_OR_LEAVE_ROOMS:
+            # Send a join message if it's turned on -- if entering in invisible mode, don't sent "user joined" message
+            if settings.NOTIFY_USERS_ON_ENTER_OR_LEAVE_ROOMS and (not invisible == '1' or not await self.is_operator(self.scope["user"])):
                 await self.channel_layer.group_send(
                     room.group_name,
                     {
@@ -121,7 +124,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
                     }
                 )
-            await self.save_message(" joined the chatroom", self.scope["user"], True)
+                await self.save_message(" joined the chatroom", self.scope["user"], True)
         # Store that we're in the room
         self.rooms.add(room_id)
         # Add them to the group so they get room messages
@@ -135,6 +138,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             "join": str(room.id),
             "title": room.title,
         })
+
+        # Make us invisible to other users if using invisible mode (only for operators)
+        if invisible == '1' and await self.is_operator(self.scope["user"]):
+            await self.set_invisible(self.scope["user"])
+        if invisible == '-1':
+            await self.set_visible(self.scope["user"])
     
     async def create_private_conversation(self, message, recipient):
         recipient_user = await self.get_user_by_username(recipient)
@@ -177,7 +186,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
                     }
                 )
-            await self.save_message(" left the chatroom", self.scope["user"], True)
+            if room_id == '1' and await self.is_visible(self.scope["user"]):
+                await self.save_message(" left the chatroom", self.scope["user"], True)
 
         # Remove that we're in the room
         self.rooms.discard(room_id)
@@ -216,12 +226,43 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             }
         )
     
-    async def kick_user(self, room_id, who_kicked, kicked_user):
+    async def send_attachment(self, room_id):
+        """
+        Called by receive_json when someone uploads an attachment.
+        """
+
+        # logging.warning(room_id)
+        # logging.warning(self.rooms)
+        # Check they are in this room
+        if room_id not in self.rooms:
+            raise ClientError("ROOM_ACCESS_DENIED")
+        # Get the room and send to the group about it
+        room = await get_room_or_error(room_id, self.scope["user"])
+        await asyncio.sleep(1)
+        attachment = await self.get_attachment_or_none(self.scope["user"])
+        logging.warning(attachment)
+        if attachment == None:
+            raise ClientError("FILE_DOES_NOT_EXIST")
+        # await self.save_message(message, self.scope["user"], False, room_id)
+        await self.channel_layer.group_send(
+            room.group_name,
+            {
+                "type": "chat.attachment",
+                "room_id": room_id,
+                "username": self.scope["user"].username,
+                "url": attachment.file.url,
+                "size": attachment.file.size,
+                "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
+            }
+        )
+        await self.set_attachment_dispatched(attachment)
+    
+    async def kick_user(self, room_id, who_kicked, kicked_user, ban):
         """
         Called by receive_json when an operator kicks a user
         """
          # Check they are in this room
-        if room_id not in self.rooms:
+        if room_id not in self.rooms or not await self.is_operator(self.scope["user"]):
             raise ClientError("ROOM_ACCESS_DENIED")
         # Get the room and send to the group about it
         room = await get_room_or_error(room_id, self.scope["user"])
@@ -236,6 +277,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
                 }
             )
+        if ban == '1':
+            await self.set_ban(await self.get_user_by_username(kicked_user))
 
     ##### Handlers for messages sent over the channel layer
 
@@ -282,6 +325,23 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "timestamp": event["timestamp"],
             },
         )
+
+    async def chat_attachment(self, event):
+        """
+        Called when someone has messaged our chat.
+        """
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": 6,
+                "room": event["room_id"],
+                "username": event["username"],
+                "url": event["url"],
+                "size": event["size"],
+                "timestamp": event["timestamp"],
+            },
+        )
+
     async def chat_kick(self, event):
         """
         Called when someone has kicked a user
@@ -304,17 +364,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         Called when someone initiates a new private conversation with another user
         """
         # add recipient to private conversation channel
-        if(self.scope["user"].username == event["recipient"]):
+        if(self.scope["user"].username == event["recipient"] or self.scope["user"].username == event["username"]):
             await self.join_room(str(event["room_id"]))
-        # Send a message down to the client
-        await self.send_json(
-            {
-                "msg_type": settings.MSG_TYPE_MUTED,
-                "room": event["room_id"],
-                "username": event["username"],
-                "recipient": event["recipient"]
-            },
-        )
+            # Send a message down to the client
+            await self.send_json(
+                {
+                    "msg_type": settings.MSG_TYPE_MUTED,
+                    "room": event["room_id"],
+                    "username": event["username"],
+                    "recipient": event["recipient"]
+                },
+            )
 
     @database_sync_to_async
     def save_message(self, message, username, is_system=False, in_room=None):
@@ -327,7 +387,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         msg.save()
     
     @database_sync_to_async
-    def user_just_left(self, user):
+    def set_just_left(self, user):
         this_user = Profile.objects.get(of_user=user.pk)
         this_user.is_online = False
         this_user.just_left = True
@@ -359,6 +419,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         this_user = Profile.objects.get(of_user=user.pk)
         this_user.just_left = False
         this_user.was_kicked = False
+        this_user.is_visible = True
         this_user.save()
     
     @database_sync_to_async
@@ -393,3 +454,40 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             return None
 
         return room
+
+    @database_sync_to_async
+    def is_visible(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        return this_user.is_visible
+    
+    @database_sync_to_async
+    def set_invisible(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        this_user.is_visible = False
+        this_user.save()
+
+    @database_sync_to_async
+    def set_visible(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        this_user.is_visible = True
+        this_user.save()
+    
+    @database_sync_to_async
+    def set_ban(self, to_ban):
+        user = Profile.objects.get(of_user=to_ban.pk)
+        user.is_banned = True
+        user.save()
+
+    @database_sync_to_async
+    def get_attachment_or_none(self, user):
+        try:
+            file = Attachment.objects.get(Q(uploaded_by=user) & Q(dispatched=False))
+        except Attachment.DoesNotExist:
+            return None
+        return file
+
+    @database_sync_to_async
+    def set_attachment_dispatched(self, attachment):
+        file = Attachment.objects.get(pk=attachment.pk)
+        file.dispatched = True
+        file.save()

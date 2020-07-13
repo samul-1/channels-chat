@@ -1,5 +1,14 @@
 body {
-	/*color: green*/
+	margin-left: 10px;
+	margin-right: 5px;
+}
+
+button {
+}
+
+.btn-sm {
+	padding: 0 5px 0 5px !important;
+	font-size: smaller !important;
 }
 
 .timestamp {
@@ -52,10 +61,8 @@ body {
 	border: 1px solid #989898;
 	width: 15%;
 	border-radius: 1px;
-	-webkit-box-shadow: 0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
-	-moz-box-shadow:    0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
-	box-shadow:         0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
 	text-align: center;
+	word-wrap: break-word;
 }
 
 #submit-button {
@@ -102,7 +109,7 @@ body {
   list-style: none;
   display: block;
 
-  margin:0 3px;
+  margin: 0 3px;
 }
 
 .tabs-nav li {
@@ -150,13 +157,12 @@ ul {
   /* The actual popup */
  .popuptext {
 	visibility: hidden;
-	width: 200px;
-	background-color: whitesmoke;
-	color: black;
+	/* width: 220px;
 	text-align: center;
 	border: 1px solid black;
-	border-radius: 1px;
-	padding: 8px 0;
+	border-radius: 3px;
+	padding: 8px; */
+	width: 15rem;
 	position: absolute;
 	z-index: 2;
 	clear: both;
@@ -173,13 +179,12 @@ ul {
    .popuptext::after {
 	content: "";
 	position: absolute;
-	top: -10%;
+	top: -9%;
 	left: 90%;
 	margin-left: -5px;
 	border-width: 5px;
 	border-style: solid;
-	border-color: transparent transparent #555 transparent;
-  }
+ }
   
   /* Toggle this class - hide and show the popup */
   .show {
@@ -209,3 +214,46 @@ ul {
 	border-style: solid;
 	border-color: #EE4031;
   }
+
+  textarea {
+	  resize: none;
+	  height: 50px
+  }
+
+[class^="online_"]:before,
+[class*=" online_"]:before {
+  font-family: FontAwesome;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  text-decoration: inherit;
+  font-size: small;
+}
+
+.online_user::before {
+	content: "\f007";
+}
+
+.online_user {
+	padding-top: 5px;
+}
+
+.fas {
+	font-size: smaller !important;
+}
+
+.semi-transparent {
+	opacity: 30%;
+}
+
+#content {
+	margin: 10px;
+}
+
+.centerbox {
+	border: 1px solid #D8D8D8;
+	border-radius: 3px;
+	padding: 20px;
+	text-align: center;
+	margin: 100px;
+}

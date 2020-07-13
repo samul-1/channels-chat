@@ -11,6 +11,40 @@ $(document).ready(function() {
 
         //toggle_msg_dialog()
     });
+    $(document).on('submit', '#attachment_form', function(event){
+        event.preventDefault();
+        var data = new FormData($('#attachment_form').get(0))
+        $.ajax({
+        url: $(this).attr('action'),
+        type: $(this).attr('method'),
+        data: data,
+        cache: false,
+        processData: false,
+        contentType: false,
+        })
+        var fullPath = document.getElementById('id_file').value
+        if (fullPath) {
+        var startIndex =
+            fullPath.indexOf('\\') >= 0
+            ? fullPath.lastIndexOf('\\')
+            : fullPath.lastIndexOf('/')
+        var filename = fullPath.substring(startIndex)
+        if (filename.indexOf('\\') === 0 || filename.indexOf('/') === 0) {
+            filename = filename.substring(1)
+        }
+        //alert(filename);
+        }
+
+        // send message to server
+        chatSocket.send(
+        JSON.stringify({
+            command: 'attachment',
+            room: currentRoom,
+            //file: filename,
+        })
+        )
+        return false
+    });
 });
 
 bind_tab_selectors = function() {
@@ -32,21 +66,4 @@ bind_tab_selectors = function() {
     });
 }
 
-toggle_msg_dialog = function() {
-    $(".priv_msg_but").click(function() {
-        $(this).parent().next(".message_dialog").toggle();
-    }); 
-}
-
 let curr_dialog
-// When the user clicks on div, open the popup
-function fadeInDialog(user) {
-    const popup = document.getElementById(user + "_dialog")
-    if(curr_dialog != undefined && curr_dialog != popup)
-        curr_dialog.classList.remove("show")
-    if(curr_dialog == popup)
-        curr_dialog = undefined
-    curr_dialog = popup
-    popup.classList.toggle("show");
-    const currShow = document.getElementsByClassName("show")
-  }

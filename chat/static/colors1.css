@@ -16,3 +16,13 @@
 .err {
 	background-color: #FF9494;
 }
+
+.popuptext {
+	/* background-color: whitesmoke;
+	color: black; */
+}
+  
+/* Popup arrow */
+.popuptext::after {
+	border-color: transparent transparent #555 transparent;
+}

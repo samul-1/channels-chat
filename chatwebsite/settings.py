@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'crispy_forms',
+    'bootstrap4',
 ]
 
 MIDDLEWARE = [
@@ -121,8 +123,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
-LOGIN_REDIRECT_URL = '/chat/'
-LOGOUT_REDIRECT_URL = '/chat/'
+LOGIN_REDIRECT_URL = '/chat/welcome'
+LOGOUT_REDIRECT_URL = '/chat/welcome'
 
 CHANNEL_LAYERS = {
     "default": {
@@ -158,3 +160,5 @@ MESSAGE_TYPES_LIST = [
     MSG_TYPE_ENTER,
     MSG_TYPE_LEAVE,
 ]
+
+MEDIA_ROOT = 'uploads'

@@ -13,3 +13,13 @@ body {
     background-color: #240054;
     color: white;
 }
+
+.popuptext {
+	background-color: #8000db;
+	color: white;
+}
+  
+/* Popup arrow */
+.popuptext::after {
+	border-color: transparent transparent #8000db transparent;
+}

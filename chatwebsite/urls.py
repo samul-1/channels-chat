@@ -16,6 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from chat import views
+from django.conf import settings
+from django.urls import re_path
+from django.views.static import serve
 
 urlpatterns = [
     path('', views.index),
@@ -23,4 +26,12 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('chat/', include('chat.urls')),
     path('admin/', admin.site.urls),
+]
+
+
+if settings.DEBUG:
+    urlpatterns += [
+        re_path(r'^uploads/(?P<path>.*)$', serve, {
+            'document_root': settings.MEDIA_ROOT,
+        }),
 ]

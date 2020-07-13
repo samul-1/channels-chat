@@ -17,3 +17,23 @@ body {
 .heading {
     background-color: #757575
 }
+
+.popuptext {
+	background-color: #757575;
+	color: white;
+}
+  
+/* Popup arrow */
+.popuptext::after {
+	border-color: transparent transparent #555 transparent;
+}
+
+.popover-header {
+	background-color: #545454;
+	border-bottom: 1px solid #545454 !important;
+	border-radius: 0 !important;
+}
+
+.popover-body {
+	background-color: #757575;
+}

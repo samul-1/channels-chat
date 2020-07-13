@@ -1,33 +1,48 @@
-{% if form.errors %}
-<p>Your username and password didn't match. Please try again.</p>
-{% endif %}
+<head>
+    {# Load the tag library #}
+    {% load bootstrap4 %}
 
-{% if next %}
-    {% if user.is_authenticated %}
-    <p>Your account doesn't have access to this page. To proceed,
-    please login with an account that has access.</p>
-    {% else %}
-    <p>Please login to access the chatroom.</p>
+    {# Load CSS and JavaScript #}
+    {% bootstrap_css %}
+    {% bootstrap_javascript jquery='full' %}
+</head>
+<body>
+    {% if next %}
+        {% if user.is_authenticated %}
+        <div class="alert alert-danger" role="alert">
+            Your account doesn't have access to this page. To proceed,
+            please login with an account that has access.
+        </div>
+        {% else %}
+        {% endif %}
     {% endif %}
-{% endif %}
+    <div class="alert alert-primary" role="alert">
+        Please log in to access the chatroom.
+    </div>
 
-<form method="post" action="{% url 'login' %}">
-{% csrf_token %}
-<table>
-<tr>
-    <td>{{ form.username.label_tag }}</td>
-    <td>{{ form.username }}</td>
-</tr>
-<tr>
-    <td>{{ form.password.label_tag }}</td>
-    <td>{{ form.password }}</td>
-</tr>
-</table>
+    <form method="post" style="width: 70%; margin: 1%" action="{% url 'login' %}">
+        {% csrf_token %}
+        {% csrf_token %}
+            {% bootstrap_form form %}
+            {% buttons %}
+                <button class="btn btn-primary" type="submit">Login</button>
+            {% endbuttons %}
+        <!-- <table>
+        <tr>
+            <td>{{ form.username.label_tag }}</td>
+            <td>{{ form.username }}</td>
+        </tr>
+        <tr>
+            <td>{{ form.password.label_tag }}</td>
+            <td>{{ form.password }}</td>
+        </tr>
+        </table>
 
-<input type="submit" value="login">
-<input type="hidden" name="next" value="{{ next }}">
-</form>
+        <input class="btn btn-primary" type="submit" value="Login"> -->
+        <input type="hidden" name="next" value="{{ next }}">
+    </form>
 
-{# Assumes you setup the password_reset view in your URLconf #}
-<p><a href="/register">Don't have an account? Sign up</a></p>
-<p><a href="{% url 'password_reset' %}">Lost password?</a></p>
+    {# Assumes you setup the password_reset view in your URLconf #}
+    <p style="margin: 1%"><a href="/register">Don't have an account? Sign up</a></p>
+    <!--<p><a href="{% url 'password_reset' %}">Lost password?</a></p>-->
+</body>

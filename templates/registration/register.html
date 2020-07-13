@@ -1,12 +1,25 @@
-{% block content %}
+<head>
+    {# Load the tag library #}
+    {% load bootstrap4 %}
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
+    {# Load CSS and JavaScript #}
+    {% bootstrap_css %}
+    {% bootstrap_javascript jquery='full' %}
+</head>
+<body>
+    {% block content %}
+        <h1 style="margin: .5%">Create a new account</h1>
+        {% load crispy_forms_tags %}
+        
+        <form method="POST" style="width: 70%; margin-left: 1%">
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            {% buttons %}
+                <button class="btn btn-primary" type="submit">Sign Up</button>
+            {% endbuttons %}
+        </form>
 
-        <button type="submit">Sign Up</button>
-    </form>
+        <p style="margin-left: 1%">If you already have an account, <a href="/accounts/login" target="blank"><strong>login</strong></a> instead.</p>
 
-    If you already have an account <a href="/accounts/login" target="blank"><strong>login</strong></a> instead.
-
-{% endblock %}
+    {% endblock %}
+</body>

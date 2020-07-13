@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Message, Profile, Colorset, Room
+from .models import Message, Profile, Colorset, Room, Attachment
 
 # Register your models here.
 
@@ -15,7 +15,11 @@ class ColorsetAdmin(admin.ModelAdmin):
 class RoomAdmin(admin.ModelAdmin):
 	list_display = ('title', 'pk')
 
+class AttachmentAdmin(admin.ModelAdmin):
+	list_display = ('file', 'uploaded_by', 'dispatched', 'timestamp')
+
 admin.site.register(Message, MessageAdmin)
 admin.site.register(Profile, ProfileAdmin)
 admin.site.register(Colorset, ColorsetAdmin)
 admin.site.register(Room, RoomAdmin)
+admin.site.register(Attachment, AttachmentAdmin)

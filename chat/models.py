@@ -14,9 +14,9 @@ class Room(models.Model):
     # Room title
     title = models.CharField(max_length=255)
 
-    # If only "staff" users are allowed (is_staff on django's User)
+    # only "staff" users are allowed? (is_staff on django's User)
     staff_only = models.BooleanField(default=False)
-    is_public = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=False) # if False, this is a private conversation between user_1 and user_2
     user_1 = models.ForeignKey(User, on_delete=models.CASCADE, null=True, default=None, related_name="user_1")
     user_2 = models.ForeignKey(User, on_delete=models.CASCADE, null=True, default=None, related_name="user_2")
 
@@ -49,10 +49,18 @@ class Colorset(models.Model):
 		return self.name
 
 class Profile(models.Model):
-	of_user = models.ForeignKey(User, on_delete=models.CASCADE)
-	selected_colorset = models.ForeignKey(Colorset, on_delete=models.CASCADE, default=1)
-	is_online = models.BooleanField(default=False)
-	just_left = models.BooleanField(default=False)
-	was_kicked = models.BooleanField(default=False)
-	def __str__(self):
-		return self.of_user.username
+    of_user = models.ForeignKey(User, on_delete=models.CASCADE)
+    selected_colorset = models.ForeignKey(Colorset, on_delete=models.CASCADE, default=1)
+    is_online = models.BooleanField(default=False)
+    just_left = models.BooleanField(default=False)
+    was_kicked = models.BooleanField(default=False)
+    is_banned = models.BooleanField(default=False)
+    is_visible = models.BooleanField(default=True)
+    def __str__(self):
+        return self.of_user.username
+
+class Attachment(models.Model):
+    file = models.FileField(upload_to='')
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, default=None, related_name="uploaded_by")
+    timestamp = models.DateTimeField(default=timezone.now)
+    dispatched = models.BooleanField(default=False) # has the attachment already been sent to the chat (True) or has it just been uploaded and waiting for the server to receive the message (False)?
