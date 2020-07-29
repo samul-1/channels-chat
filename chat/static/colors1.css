@@ -1,3 +1,11 @@
+.msg {
+	border-bottom: 1px solid #FAFAFA;
+}
+
+#right_container {
+	background-color: #FBFBFB;
+}
+
 .your_msg {
 	background-color: #F3F3F3
 }
@@ -17,12 +25,25 @@
 	background-color: #FF9494;
 }
 
-.popuptext {
-	/* background-color: whitesmoke;
-	color: black; */
-}
   
 /* Popup arrow */
 .popuptext::after {
 	border-color: transparent transparent #555 transparent;
+}
+
+.navbar {
+	background-color: #DCDCDC;
+	border-bottom: 1px solid #D3D3D3;
+}
+
+#left_container, #right_container, #chat_container {
+	border-color: whitesmoke;
+}
+
+.online_user:nth-child(odd) {
+	background-color: #F1F1F1;
+}
+
+.mention {
+	background-color: #AAAA;
 }

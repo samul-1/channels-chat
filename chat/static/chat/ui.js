@@ -13,6 +13,7 @@ $(document).ready(function() {
     });
     $(document).on('submit', '#attachment_form', function(event){
         event.preventDefault();
+        $('#attachment_but').click();
         var data = new FormData($('#attachment_form').get(0))
         $.ajax({
         url: $(this).attr('action'),
@@ -34,7 +35,7 @@ $(document).ready(function() {
         }
         //alert(filename);
         }
-
+        $('#id_file').val('')
         // send message to server
         chatSocket.send(
         JSON.stringify({
@@ -66,4 +67,21 @@ bind_tab_selectors = function() {
     });
 }
 
+function validateSize(file) {
+    var FileSize = file.files[0].size / 1024 / 1024; // in MB
+    if (FileSize > 5) {
+        alert(lang[currLang]["attachments_size_exceeds_limit"] + " 5 MB");
+       $(file).val(''); //for clearing with Jquery
+    } else {
+
+    }
+}
+
 let curr_dialog
+
+// fills 
+loadLanguageAndFillPage = function () {
+    document.getElementById("chatroom_title").textContent = lang[currLang]["ui.chat_title"]
+    document.getElementById("online_users_heading").textContent = lang[currLang]["ui.online_users"]
+    document.getElementById("conversations_heading").textContent = lang[currLang]["ui.conversations"]
+}

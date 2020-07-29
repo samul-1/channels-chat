@@ -1,4 +1,16 @@
-.your_msg {
+.msg {
+	border-bottom: 1px solid #585858;
+}
+
+#left_container, #right_container, #chat_container {
+	border-color: #303030;
+}
+
+#right_container {
+	background-color: #323232;
+}
+
+.your_msg, .toast-body {
 	background-color: #545454
 }
 
@@ -14,7 +26,7 @@ body {
     color: white;
 }
 
-.heading {
+.heading, .toast-header {
     background-color: #757575
 }
 
@@ -29,11 +41,55 @@ body {
 }
 
 .popover-header {
-	background-color: #545454;
+	background-color: #757575;
 	border-bottom: 1px solid #545454 !important;
 	border-radius: 0 !important;
 }
 
 .popover-body {
-	background-color: #757575;
+	background-color: #545454;
+}
+
+#id_file {
+	color: white !important
+}
+
+a, a:hover {
+	color: lightblue
+}
+
+.text-muted {
+	color: #A0A0A0 !important
+}
+
+.popover {
+	border-radius: 5px !important;
+}
+
+.op_text {
+	color: white !important;
+}
+
+.modal-content {
+	color: black !important;
+}
+
+.toast-header {
+	color: white
+}
+
+.navbar {
+	background-color: #292929;
+}
+
+.online_user:nth-child(odd) {
+	background-color: #404040;
+}
+
+.mention {
+	background-color: #454545;
+}
+
+hr {
+	background-color: whitesmoke;
 }

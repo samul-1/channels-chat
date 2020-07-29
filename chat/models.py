@@ -48,14 +48,23 @@ class Colorset(models.Model):
 	def __str__(self):
 		return self.name
 
+class Language(models.Model):
+    name = models.CharField(max_length=30)
+    code = models.CharField(max_length=2)
+    def __str__(self):
+        return self.name
+
 class Profile(models.Model):
     of_user = models.ForeignKey(User, on_delete=models.CASCADE)
-    selected_colorset = models.ForeignKey(Colorset, on_delete=models.CASCADE, default=1)
+    selected_colorset = models.ForeignKey(Colorset, on_delete=models.SET_DEFAULT, default=1)
+    selected_language = models.ForeignKey(Language, on_delete=models.SET_DEFAULT, default=1)
     is_online = models.BooleanField(default=False)
     just_left = models.BooleanField(default=False)
     was_kicked = models.BooleanField(default=False)
     is_banned = models.BooleanField(default=False)
     is_visible = models.BooleanField(default=True)
+    is_muted = models.BooleanField(default=False)
+    sound_notification_enabled = models.BooleanField(default=True)
     def __str__(self):
         return self.of_user.username
 

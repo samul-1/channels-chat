@@ -1,0 +1,47 @@
+{
+    "en": {
+        "action.send": "Send",
+        "chat.joined": "joined the chatroom",
+        "chat.left": "left the chatroom",
+        "chat.kicked": "kicked",
+        "warning.you_were_kicked": "You were kicked from the chat",
+        "warning.server_stopped_responding": "Server stopped responding",
+        "ui.online_users": "Online users",
+        "ui.conversations": "Conversations",
+        "ui.yes": "Yes",
+        "ui.no": "No",
+        "ui.logout": "Log out",
+        "ui.chat_title": "Chatroom",
+        "ui.confirm_operation": "Confirm operation",
+        "ui.ban_confirmation": "Are you sure you want to ban this user?",
+        "ui.send_message_to": "Send message to",
+        "attachments.upload_a_file": "Upload a file",
+        "attachments.max_size": "Maximum size allowed:",
+        "attachments.upload": "Upload",
+        "attachments.size_exceeds_limit": "File size exceeds",
+        "attachments.size": "Size"
+    },
+
+    "it": {
+        "action.send": "Invia",
+        "chat.joined": "è entrato in chat",
+        "chat.left": "è uscito dalla chat",
+        "chat.kicked": "ha kickato",
+        "warning.you_were_kicked": "Sei stato kickato dalla chat",
+        "warning.server_stopped_responding": "Connessione al server persa",
+        "ui.online_users": "Utenti online",
+        "ui.conversations": "Conversazioni",
+        "ui.yes": "Yes",
+        "ui.no": "No",
+        "ui.logout": "Log out",
+        "ui.chat_title": "Chatroom",
+        "ui.confirm_operation": "Confirm operation",
+        "ui.ban_confirmation": "Are you sure you want to ban this user?",
+        "ui.send_message_to": "Send message to",
+        "attachments.upload_a_file": "Upload a file",
+        "attachments.max_size": "Maximum size allowed:",
+        "attachments.upload": "Upload",
+        "attachments.size_exceeds_limit": "File size exceeds",
+        "attachments.size": "Size"
+    }
+}

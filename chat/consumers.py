@@ -36,6 +36,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called when the websocket is handshaking as part of initial connection.
         """
+        await asyncio.sleep(0.5) # REMOVE THIS IN PRODUCTION
         # Are they logged in?
         if self.scope["user"].is_anonymous:
             # Reject the connection
@@ -43,6 +44,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         else:
             # Accept the connection
             await self.accept()
+
         # Store which rooms the user has joined on this connection
         self.rooms = set()
 
@@ -62,6 +64,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # Messages will have a "command" key we can switch on
         command = content.get("command", None)
 
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user sends a message, kill that connection
+            await self.close()
+            return
+
         try:
             if command == "join":
                 # Make them join the room
@@ -77,6 +83,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.kick_user(content["room"], content["who_kicked"], content["kicked_user"], content["ban"])
             elif command == "new_private_msg":
                 await self.create_private_conversation(content["message"], content["recipient"])
+            elif command == "toggle_mute":
+                await self.toggle_mute(content["target"], content["room"])
+            elif command == "toggle_sound_notification":
+                await self.toggle_sound_notification()
         except ClientError as e:
             # Catch any errors and send it back
             await self.send_json({"error": e.code})
@@ -188,6 +198,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 )
             if room_id == '1' and await self.is_visible(self.scope["user"]):
                 await self.save_message(" left the chatroom", self.scope["user"], True)
+            if room_id != '1':
+                await self.delete_room(room_id)
 
         # Remove that we're in the room
         self.rooms.discard(room_id)
@@ -212,6 +224,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # Check they are in this room
         if room_id not in self.rooms:
             raise ClientError("ROOM_ACCESS_DENIED")
+        # Check if they are muted
+        if room_id == '1' and await self.is_muted(self.scope["user"]):
+            return
         # Get the room and send to the group about it
         room = await get_room_or_error(room_id, self.scope["user"])
         await self.save_message(message, self.scope["user"], False, room_id)
@@ -261,7 +276,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called by receive_json when an operator kicks a user
         """
-         # Check they are in this room
+         # Check they are in this room and if they are an operator
         if room_id not in self.rooms or not await self.is_operator(self.scope["user"]):
             raise ClientError("ROOM_ACCESS_DENIED")
         # Get the room and send to the group about it
@@ -280,6 +295,31 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if ban == '1':
             await self.set_ban(await self.get_user_by_username(kicked_user))
 
+    async def toggle_mute(self, target, room_id):
+        """
+        Called by receive_json when an operator wants to mute/unmute a user
+        """
+        
+        # Check they are in this room and if they are an operator
+        if room_id not in self.rooms or not await self.is_operator(self.scope["user"]):
+            raise ClientError("ROOM_ACCESS_DENIED")
+
+        room = await get_room_or_error(room_id, self.scope["user"])
+
+        new_status = await self.db_toggle_muted(await self.get_user_by_username(target))
+        
+        if(await self.is_operator(self.scope["user"])):
+            await self.channel_layer.group_send(
+                room.group_name,
+                {
+                    "type": "chat.mute",
+                    "target": target,
+                    "new_status": new_status,
+                    "timestamp": dateformat.format(timezone.now() + timedelta(hours=2), "H:i")
+                }
+            )
+
+
     ##### Handlers for messages sent over the channel layer
 
     # These helper methods are named by the types we send - so chat.join becomes chat_join
@@ -287,10 +327,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called when someone has joined our chat.
         """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_ENTER,
+                "msg_type": 4, #settings.MSG_TYPE_ENTER,
                 "room": event["room_id"],
                 "username": event["username"],
                 "timestamp": event["timestamp"],
@@ -301,10 +344,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called when someone has left our chat.
         """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_LEAVE,
+                "msg_type": 5, #settings.MSG_TYPE_LEAVE,
                 "room": event["room_id"],
                 "username": event["username"],
                 "timestamp": event["timestamp"],
@@ -315,10 +361,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called when someone has messaged our chat.
         """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_MESSAGE,
+                "msg_type": 0, #settings.MSG_TYPE_MESSAGE,
                 "room": event["room_id"],
                 "username": event["username"],
                 "message": event["message"],
@@ -330,6 +379,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called when someone has messaged our chat.
         """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
         # Send a message down to the client
         await self.send_json(
             {
@@ -346,10 +398,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         Called when someone has kicked a user
         """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_ALERT,
+                "msg_type": 2, #settings.MSG_TYPE_ALERT,
                 "kicked_user": event["kicked_user"],
                 "who_kicked": event["who_kicked"],
                 "timestamp": event["timestamp"],
@@ -358,18 +413,38 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if(self.scope["user"].username == event['kicked_user']):
             await self.set_kicked(self.scope["user"])
             await self.close()
+
+    async def chat_mute(self, event):
+        """
+        Called when someone has muted/unmuted a user
+        """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
+        # Send a message down to the client
+        await self.send_json(
+            {
+                "msg_type": 7,
+                "target": event["target"],
+                "new_status": event["new_status"],
+                "timestamp": event["timestamp"],
+            },
+        )
     
     async def chat_newconv(self, event):
         """
         Called when someone initiates a new private conversation with another user
         """
+        if not await self.is_online(self.scope["user"]): # if for some reason an offline user is supposed to receive a message, kill that connection
+            await self.close()
+            return
         # add recipient to private conversation channel
         if(self.scope["user"].username == event["recipient"] or self.scope["user"].username == event["username"]):
             await self.join_room(str(event["room_id"]))
             # Send a message down to the client
             await self.send_json(
                 {
-                    "msg_type": settings.MSG_TYPE_MUTED,
+                    "msg_type": 3, #settings.MSG_TYPE_MUTED,
                     "room": event["room_id"],
                     "username": event["username"],
                     "recipient": event["recipient"]
@@ -420,8 +495,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         this_user.just_left = False
         this_user.was_kicked = False
         this_user.is_visible = True
+        if not this_user.is_online:
+            this_user.is_muted = False
         this_user.save()
     
+    @database_sync_to_async
+    def is_online(self, user):
+        logging.warning(Profile.objects.get(of_user=user).is_online)
+        return Profile.objects.get(of_user=user).is_online
+
     @database_sync_to_async
     def set_as_online(self, user):
         this_user = Profile.objects.get(of_user=user.pk)
@@ -491,3 +573,25 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         file = Attachment.objects.get(pk=attachment.pk)
         file.dispatched = True
         file.save()
+    
+    @database_sync_to_async
+    def delete_room(self, room_id):
+        room = Room.objects.get(pk=room_id).delete()
+
+    @database_sync_to_async
+    def is_muted(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        return this_user.is_muted
+    
+    @database_sync_to_async
+    def db_toggle_muted(self, user):
+        this_user = Profile.objects.get(of_user=user.pk)
+        this_user.is_muted = not this_user.is_muted
+        this_user.save()
+        return this_user.is_muted
+    
+    @database_sync_to_async
+    def toggle_sound_notification(self):
+        this_user = Profile.objects.get(of_user=self.scope["user"])
+        this_user.sound_notification_enabled = not this_user.sound_notification_enabled
+        this_user.save()

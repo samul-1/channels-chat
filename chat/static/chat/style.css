@@ -1,9 +1,20 @@
-body {
-	margin-left: 10px;
-	margin-right: 5px;
+* {
+	margin: 0;
+	padding: 0;
 }
 
-button {
+html, body, .container {
+	width: 100%;
+	height: 100%;
+}
+
+.container {
+	display: grid;
+	grid-template-columns: 80% 20%;
+	grid-template-rows: auto;
+	max-width: 100%;
+	text-align: center;
+	height: 91%;
 }
 
 .btn-sm {
@@ -20,21 +31,9 @@ button {
 .msg {
 	padding: 5px 5px 5px 10px;
 	display: block;
-	border-bottom: 1px solid #FAFAFA
+	word-wrap: break-word;
 }
 
-
-#chat_container {
-	border: 1px solid #989898;
-	border-radius: 3px;
-	-webkit-box-shadow: 1px 1px 2px 0px rgba(50, 50, 50, 0.75);
-	-moz-box-shadow:    1px 1px 2px 0px rgba(50, 50, 50, 0.75);
-	box-shadow:         1px 1px 2px 0px rgba(50, 50, 50, 0.75);
-	height: 450px;
-	overflow-y: auto;
-	float: left;
-	width: 80%;
-}
 
 #colorset_form {
 	margin: 30px 10px 0 10px;
@@ -42,27 +41,11 @@ button {
 	display: block;
 }
 
-/* #online_users {
-	float: right;
-	margin-right: 10px;
-	border: 1px solid #989898;
-	width: 15%;
-	border-radius: 1px;
-	-webkit-box-shadow: 0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
-	-moz-box-shadow:    0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
-	box-shadow:         0.5px 0.5px 0.5px 0px rgba(50, 50, 50, 0.75);
-	text-align: center;
-} */
-
 .sidebar {
-	float: right;
-	margin-right: 10px;
-	margin-top: 10px;
-	border: 1px solid #989898;
-	width: 15%;
-	border-radius: 1px;
+	width: 100%;
 	text-align: center;
 	word-wrap: break-word;
+
 }
 
 #submit-button {
@@ -70,21 +53,38 @@ button {
 	color: white;
 	text-align: center;
 	border-radius: 5px;
-	width: 100px;
 }
 
 #submit-button:hover {
 	cursor: pointer
 }
 
-#message_input {
-	float: left;
-	clear: both;
-	margin-top: 20px;
+#left_container {
+	border-style: solid;
+	border-width: 0 1px 0 0;
+} 
+
+#right_container {
+	border-style: solid;
+	border-width: 0 1px 0 0;
+	overflow-y: auto;
 }
 
-.message_dialog {
-	/* display: none */
+#chat_container {
+	height: 450px;
+	overflow-y: auto;
+	float: left;
+	width: 100%;
+	text-align: left !important;
+	/*border-left-style: solid;
+	border-bottom-style: solid;
+	border-width: 0 0 1px 1px;*/
+}
+
+#message_input {
+	margin-top: 20px;
+	max-width: 100%;
+	display: inline-block;
 }
 
 .heading {
@@ -95,7 +95,7 @@ button {
 
 .err {
 	background-color: #FF9494;
-	color: black;
+	color: black !important;
 }
 
 .chatroom {
@@ -216,8 +216,8 @@ ul {
   }
 
   textarea {
-	  resize: none;
-	  height: 50px
+	resize: none;
+	height: 50px
   }
 
 [class^="online_"]:before,
@@ -236,6 +236,15 @@ ul {
 
 .online_user {
 	padding-top: 5px;
+	padding-bottom: 5px;
+	margin-bottom: 0;
+	text-align: left;
+	padding-left: 40px;
+}
+
+button.priv_msg_but {
+	float: right;
+	margin-right: 40px;
 }
 
 .fas {
@@ -257,3 +266,50 @@ ul {
 	text-align: center;
 	margin: 100px;
 }
+
+.op_text:hover {
+	cursor: pointer;
+}
+
+.muted::after {
+	content: " \f6a9";
+	font-family: "Font Awesome 5 Free";
+	font-weight: 900;
+}
+
+/* .navbar {
+	margin-bottom: 10px;
+} */
+
+/* scrollbar */
+
+/* width */
+::-webkit-scrollbar {
+	width: 10px;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+	box-shadow: inset 0 0 5px grey; 
+	border-radius: 10px;
+  }
+   
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+	background: grey; 
+	border-radius: 10px;
+  }
+  
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+	background: darkgrey; 
+  }
+
+  .hidden-link {
+	  display: none !important;
+  }
+  
+  .mention {
+	  padding: 2px;
+	  border-radius: 4px;
+  }

@@ -11,10 +11,18 @@
 		{% bootstrap_css %}
 		{% bootstrap_javascript jquery='full' %}
 		<script src="{% static "chat/jquery-1.12.2.min.js" %}" type="text/javascript"></script>
-		<script src="{% static "chat/reconnecting-websocket.min.js" %}" type="text/javascript"></script>
+        <script src="{% static "chat/reconnecting-websocket.min.js" %}" type="text/javascript"></script>
 		
 		<link rel="stylesheet" type="text/css" href="{% static 'chat/style.css' %}">
-		<link rel="stylesheet" type="text/css" href="{% static colorset %}">
+        <link rel="stylesheet" type="text/css" href="{% static colorset %}">
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+                max-height: 100%;
+            }
+        </style>
 	</head>
 	
 	<body>
@@ -34,11 +42,19 @@
                 <!--Grid column-->
                 <div class="shadow-sm centerbox col-md-5">
             
-                    <h3>There {% if user_count == 1 %}is{% else %}are{% endif %} currently <b>{{ user_count }} online user{% if user_count != 1 %}s{% endif %}</b>.</h3><hr />
-                    <a href="/chat" class="btn btn-primary"><i class="fas fa-hashtag"></i> Join the chat</a>
+                    <h3 id="user_count_realtime">There {% if user_count == 1 %}is{% else %}are{% endif %} currently <b><span>{{ user_count }}</span> online user{% if user_count != 1 %}s{% endif %}</b>.</h3><hr />
+                    <!-- <a href="/chat" class="btn btn-primary"><i class="fas fa-hashtag"></i> Join the chat</a>
                     {% if request.user|has_group:"Operator" %}
                         <a href="/chat/invisible" class="btn btn-dark"><i class="fas fa-user-ninja"></i> Invisible mode</a>  
-                    {% endif %}
+                    {% endif %} -->
+
+                    <form action="/chat/" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-primary" type="submit"><i class="fas fa-hashtag"></i> Join the chat</button>
+                        {% if request.user|has_group:"Operator" %}
+                            <br /><input type="checkbox" id="invisible" name="invisible"><label for="invisible" style="margin-top: 5px"><!-- &nbsp;<i class="fas fa-user-ninja"></i> -->&nbsp;Invisible mode</label>
+                        {% endif %}
+                    </form>
             
                 </div>
                 <!--Grid column-->
@@ -49,4 +65,26 @@
             <a href="/accounts/logout" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Log out</a>
         </div>
         <script src="https://kit.fontawesome.com/c4a4310769.js" crossorigin="anonymous"></script>
+        <script>
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    let verb // "is" or "are"
+                    let user_or_users // "user" for singular, "users" for plural
+                    if(this.responseText == 1) {
+                        verb = "is"
+                        user_or_users = "user"
+                    } else {
+                        verb = "are"
+                        user_or_users = "users"
+                    }
+                    document.getElementById("user_count_realtime").innerHTML = "There " + verb + " currently <b>" + this.responseText + " online " + user_or_users + "</b>."
+                }
+            };
+            updateUserCount = function() {
+                xhttp.open("GET", "online_users_count", true);
+                xhttp.send();
+            }
+            setInterval(updateUserCount, 3000)
+        </script>
     </body>
